@@ -175,8 +175,13 @@ services:
       - ./volumes/app/storage:/app/api/storage
     networks:
       - ssrf_proxy_network
+      - dokploy-network
       - default
-
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.backend-app.rule=Host(`difyapi.johnnyrobot.com`)
+      - traefik.http.routers.backend-app.entrypoints=web
+      - traefik.http.services.backend-app.loadbalancer.server.port=5000
   # worker service
   # The Celery worker for processing the queue.
   worker:
@@ -205,7 +210,14 @@ services:
       CONSOLE_API_URL: ${CONSOLE_API_URL:-}
       APP_API_URL: ${APP_API_URL:-}
       SENTRY_DSN: ${WEB_SENTRY_DSN:-}
-
+    networks:
+      - dokploy-network
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dify.rule=Host(`dify.johnnyrobot.ai`)
+      - traefik.http.routers.dify.entrypoints=web
+      - traefik.http.services.dify.loadbalancer.server.port=3000
   # The postgres database.
   db:
     image: postgres:15-alpine
@@ -310,7 +322,14 @@ services:
     ports:
       - "${NGINX_PORT:-80}:${EXPOSE_NGINX_PORT:-80}"
       - "${NGINX_SSL_PORT:-443}:${EXPOSE_NGINX_SSL_PORT:-443}"
-
+    networks:
+      - dokploy-network
+      - default
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.nginx-app.rule=Host(`nginx.johnnyrobot.ai`)
+      - traefik.http.routers.nginx-app.entrypoints=web
+      - traefik.http.services.nginx-app.loadbalancer.server.port=80
   # The Weaviate vector store.
   weaviate:
     image: semitechnologies/weaviate:1.19.0
@@ -523,6 +542,8 @@ services:
 
 networks:
   # create a network between sandbox, api and ssrf_proxy, and can not access outside.
+  dokploy-network:
+    external: true
   ssrf_proxy_network:
     driver: bridge
     internal: true
